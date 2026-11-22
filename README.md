@@ -1,14 +1,17 @@
-# Dictaphone — Stage 2
+# Dictaphone — Stage 3
 
-This is the same PWA and the same IndexedDB database as Stage 1. **Existing clips stay in place.** The upgrade adds a local review queue, manual transcripts, optional cloud transcription and suggested sorting.
+This is the same PWA and IndexedDB database as Stages 1 and 2. **Existing clips stay in place.** This stage adds a per-clip Share audio button for the Drive-based nightly sorting workflow; Stage 2's local review and optional OpenAI path remain available.
 
 ## Use the app
 
 1. Open the existing [Vercel deployment](https://ptt-smoky.vercel.app/) from the Home Screen. If it shows Stage 1, close and reopen once while online to let the new offline shell take over.
 2. Record as before; taps and local storage work offline.
-3. Open **Clips**. Select **Enter transcript** for an offline manual path or **Process with AI** to send only that chosen clip to OpenAI.
-4. Open **Review** to edit text, category, and the optional spoken priority/RPE/REP score. Keep or discard suggestions; discarded items can be restored.
-5. Use **Export notes JSON** for a text backup. Audio still has its own **Export audio** button. Nothing is deleted by Stage 2.
+3. Open **Clips**, tap **Share audio** for a clip, select Google Drive in the iPhone Share sheet, and save to **PTT / Input**. Check the upload in Drive. The button cannot select a Drive folder or verify an upload for you. Use **Export audio** if file sharing is unavailable. The original clip stays on the phone.
+4. For the previous Stage 2 workflow, select **Enter transcript** for an offline manual path or **Process with AI** to send only that chosen clip to OpenAI.
+5. Open **Review** to edit text, category, and the optional spoken priority/RPE/REP score. Keep or discard suggestions; discarded items can be restored.
+6. Use **Export notes JSON** for a text backup. Nothing is deleted by this stage.
+
+The scheduled Drive workflow is separate from the PWA. It checks the **Input** folder at 18:00 Europe/London, transcribes new audio with Whisper, and reads a clear closing "RPE ten" as Keep or "RPE one" as Rubbish. Other or uncertain scores remain in Input for review. It stores results as JSON beside the audio; this stage does not import those results back into the phone's Review screen. Drive is a cloud copy of audio. Sharing through the iPhone Share sheet is manual and does not prove that Drive has completed its upload.
 
 A clip can produce several separate review items. An AI-suggested **Noise** item is shown for review, never automatically thrown away. Priority is only extracted when you explicitly speak a score.
 
@@ -27,4 +30,4 @@ The server accepts at most 2.5 MB of MP4/WebM audio per request. If the server i
 
 Opening the app upgrades IndexedDB from v1 to v2 by **adding** a `review_items` object store. It does not clear or rewrite previous recordings. A processed clip keeps its raw transcript and links to review items through `clip_id`. Clips are never automatically deleted, and no note is sent to Google Sheets at this stage.
 
-Stage 3 can add backup and personal sorting preferences to this same data model. If you change static assets later, bump the cache version in `sw.js` so Home Screen installs update. For desktop testing, serve the repository on `http://localhost:8000` with `python3 -m http.server 8000`.
+Later stages can import Drive results into Review and learn from your Keep/Rubbish decisions. If you change static assets later, bump the cache version in `sw.js` so Home Screen installs update. For desktop testing, serve the repository on `http://localhost:8000` with `python3 -m http.server 8000`.

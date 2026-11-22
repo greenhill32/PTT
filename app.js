@@ -108,6 +108,16 @@ async function persistRecording() {
 
 function extension(mime) { return mime.includes('mp4') ? 'm4a' : mime.includes('webm') ? 'webm' : 'audio'; }
 
+function clipFilename(clip) {
+  return `ptt-${clip.created_at.replace(/[:.]/g, '-')}-${clip.clip_id}.${extension(clip.mime_type)}`;
+}
+
+function downloadClip(clip, url) {
+  const link = document.createElement('a'); link.href = url;
+  link.download = clipFilename(clip);
+  document.body.append(link); link.click(); link.remove();
+}
+
 async function refreshCount() {
   try {
     $('count').textContent = (await getClips()).length;
@@ -135,13 +145,27 @@ async function openClips() {
       head.append(title, length);
       const audio = document.createElement('audio'); audio.controls = true; audio.preload = 'none';
       const url = URL.createObjectURL(clip.audio_blob); activeUrls.push(url); audio.src = url;
-      const exportButton = document.createElement('button'); exportButton.type = 'button'; exportButton.textContent = 'Export audio';
-      exportButton.addEventListener('click', () => {
-        const link = document.createElement('a'); link.href = url;
-        link.download = `thought-${clip.created_at.replace(/[:.]/g, '-')}.${extension(clip.mime_type)}`;
-        document.body.append(link); link.click(); link.remove();
+      const actions = document.createElement('div'); actions.className = 'actions';
+      const shareButton = document.createElement('button'); shareButton.type = 'button'; shareButton.textContent = 'Share audio';
+      const shareStatus = document.createElement('p'); shareStatus.className = 'clip-info'; shareStatus.setAttribute('role', 'status');
+      if (!navigator.share || !window.File) shareButton.hidden = true;
+      shareButton.addEventListener('click', async () => {
+        const file = new File([clip.audio_blob], clipFilename(clip), { type: clip.mime_type || clip.audio_blob.type });
+        if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+          shareStatus.textContent = 'File sharing is unavailable here. Use Export audio instead.';
+          return;
+        }
+        try {
+          await navigator.share({ files: [file] });
+          shareStatus.textContent = 'If you chose Google Drive, check PTT / Input to confirm the upload completed.';
+        } catch (error) {
+          shareStatus.textContent = error?.name === 'AbortError' ? '' : 'Could not share this clip. Use Export audio instead.';
+        }
       });
-      item.append(head, audio, exportButton);
+      const exportButton = document.createElement('button'); exportButton.type = 'button'; exportButton.textContent = 'Export audio';
+      exportButton.addEventListener('click', () => downloadClip(clip, url));
+      actions.append(shareButton, exportButton);
+      item.append(head, audio, actions, shareStatus);
       attachReview(item, clip, refreshCount);
       $('clips').append(item);
     }
