@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0f12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="./icon-180.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <title>Dictaphone</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0d0f12; --surface:#171b21; --border:#303640; --text:#f3f5f8; --muted:#a6b0bf; --red:#e63946; --green:#2ec4b6; --amber:#f7ad1a; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100dvh; background:#050608; color:var(--text); }
+    button { font:inherit; cursor:pointer; }
+    .phone { max-width:480px; margin:auto; min-height:100dvh; background:var(--bg); padding:calc(env(safe-area-inset-top) + 22px) 22px calc(env(safe-area-inset-bottom) + 22px); display:flex; flex-direction:column; }
+    .top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .pill,.review { background:var(--surface); border:1px solid var(--border); border-radius:30px; padding:9px 12px; color:var(--text); font-size:13px; }
+    .pill { color:var(--muted); display:flex; align-items:center; gap:8px; }
+    .dot { width:8px; height:8px; background:var(--green); border-radius:50%; flex:none; }
+    .badge { display:inline-block; background:var(--amber); color:#111; border-radius:20px; padding:1px 7px; margin-left:5px; font-weight:700; }
+    .stage { flex:1; min-height:420px; display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; gap:20px; padding:36px 0; }
+    .timer { font-size:46px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.03em; }
+    .timer.idle { color:var(--muted); }
+    .waveform { display:flex; align-items:center; gap:5px; height:32px; opacity:.22; }
+    .waveform.active { opacity:1; }
+    .bar { height:12px; width:4px; border-radius:3px; background:var(--red); }
+    .bar:nth-child(2),.bar:nth-child(6) { height:25px; }
+    .bar:nth-child(4),.bar:nth-child(8) { height:30px; }
+    .bar:nth-child(3),.bar:nth-child(7) { height:18px; }
+    .ring { width:212px; height:212px; border-radius:50%; border:3px solid var(--border); display:grid; place-items:center; transition:.2s; }
+    .ring.active { border-color:var(--red); box-shadow:0 0 0 14px rgba(230,57,70,.24); }
+    .record { width:176px; height:176px; border:0; border-radius:50%; background:var(--red); color:white; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px; box-shadow:0 12px 30px rgba(230,57,70,.32); font-size:18px; font-weight:750; touch-action:manipulation; }
+    .record:disabled { opacity:.65; }
+    .record:active:not(:disabled) { transform:scale(.97); }
+    .record small { font-size:12px; font-weight:500; }
+    .ring.active .record { width:86px; height:86px; border-radius:22px; font-size:34px; }
+    .hint { line-height:1.55; color:var(--muted); max-width:320px; font-size:14px; }
+    .hint strong { color:var(--text); }
+    .message { min-height:40px; max-width:340px; font-size:14px; line-height:1.45; color:var(--green); }
+    .message.error { color:#ffb4bb; }
+    .foot { border-top:1px solid var(--border); padding-top:16px; color:var(--muted); font-size:12px; line-height:1.5; text-align:center; }
+    .sheet[hidden] { display:none; }
+    .sheet { position:fixed; inset:0; background:rgba(0,0,0,.75); display:flex; align-items:flex-end; z-index:10; }
+    .sheet-body { width:100%; max-width:480px; max-height:88dvh; margin:auto auto 0; background:var(--surface); border:1px solid var(--border); border-radius:22px 22px 0 0; padding:20px 18px calc(env(safe-area-inset-bottom) + 20px); overflow:auto; }
+    .sheet-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    h1 { font-size:22px; margin:0; }
+    .close,.clip button { background:#242b34; color:var(--text); border:1px solid var(--border); border-radius:10px; padding:9px 12px; }
+    .explain { color:var(--muted); font-size:13px; line-height:1.5; }
+    .clip { border:1px solid var(--border); border-radius:14px; padding:14px; margin-top:12px; }
+    .clip-head { display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:14px; }
+    .clip small { color:var(--muted); }
+    .clip audio { width:100%; margin-top:10px; height:40px; }
+    .clip button { margin-top:9px; }
+    .empty { color:var(--muted); padding:24px 0; }
+  </style>
+</head>
+<body>
+  <main class="phone">
+    <header class="top">
+      <div class="pill"><span class="dot"></span><span id="connection">Ready to record</span></div>
+      <button class="review" id="review" type="button">Clips <span class="badge" id="count">0</span></button>
+    </header>
+    <section class="stage" aria-label="Capture">
+      <div class="timer idle" id="timer">00:00</div>
+      <div class="waveform" id="waveform" aria-hidden="true"><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span><span class="bar"></span></div>
+      <div class="ring" id="ring"><button class="record" id="record" type="button" aria-label="Start recording"><span id="record-label">REC</span><small id="record-sub">Tap to record</small></button></div>
+      <p class="hint" id="hint">Say <strong>“priority seven”</strong> or <strong>“RPE seven”</strong> if you want to give the AI a clue later. It is optional.</p>
+      <p class="message" id="message" role="status" aria-live="polite"></p>
+    </section>
+    <footer class="foot">Stage 1 · Audio stays on this device. Open Clips to replay or export it. Keep this screen open while recording.</footer>
+  </main>
+  <section class="sheet" id="sheet" hidden aria-label="Saved clips" role="dialog" aria-modal="true">
+    <div class="sheet-body">
+      <div class="sheet-top"><h1>Saved clips</h1><button class="close" id="close" type="button">Close</button></div>
+      <p class="explain">Saved on this device only. Export important clips for backup. Transcription and sorting come in the next stage.</p>
+      <div id="clips"></div>
+    </div>
+  </section>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
