@@ -1,4 +1,4 @@
-import { getClips, saveClip } from './db.js';
+import { getClips, saveClip, clearClips } from './db.js';
 import { attachReview, openNotes, pendingCount, exportNotes } from './review.js';
 
 const $ = id => document.getElementById(id);
@@ -131,6 +131,8 @@ function clearUrls() { activeUrls.forEach(URL.revokeObjectURL); activeUrls = [];
 async function openClips() {
   try {
     const clips = await getClips();
+    $('clips-clear').hidden = !clips.length;
+    $('clips-clear-status').textContent = '';
     clearUrls(); $('clips').replaceChildren();
     if (!clips.length) {
       const empty = document.createElement('p'); empty.className = 'empty';
@@ -176,6 +178,22 @@ async function openClips() {
 
 record.addEventListener('click', () => { if (mode === 'recording') stopRecording(); else if (mode === 'idle') startRecording(); });
 $('review').addEventListener('click', openClips);
+$('clips-clear').addEventListener('click', async () => {
+  const button = $('clips-clear'), status = $('clips-clear-status');
+  if (mode !== 'idle') { status.textContent = 'Stop recording first.'; return; }
+  try {
+    const count = (await getClips()).length;
+    if (!count) { status.textContent = 'No recordings to clear.'; return; }
+    if (!confirm(`Remove ${count} recording${count === 1 ? '' : 's'} from this iPhone? This cannot be undone. Check your Google Drive uploads first. Review text and Drive files are not affected.`)) return;
+    button.disabled = true;
+    await clearClips();
+    await refreshCount();
+    await openClips();
+    status.textContent = `Removed ${count} recording${count === 1 ? '' : 's'} from this iPhone.`;
+  } catch {
+    status.textContent = 'Could not clear recordings. They may still be on this device.';
+  } finally { button.disabled = false; }
+});
 $('notes-open').addEventListener('click', () => openNotes(refreshCount));
 $('notes-close').addEventListener('click', () => { $('notes-sheet').hidden = true; record.focus(); });
 $('notes-sheet').addEventListener('click', event => { if (event.target === $('notes-sheet')) $('notes-close').click(); });
