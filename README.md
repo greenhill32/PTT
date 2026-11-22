@@ -1,25 +1,30 @@
-# Dictaphone — Stage 1
+# Dictaphone — Stage 2
 
-This builds directly on the capture mock-up in `ptt.html`. The recording button is functional: tap once to start and once to stop. Audio is saved in IndexedDB on the device, can be replayed from **Clips**, and can be exported individually. No account, backend, AI, or network is used for a recording.
+This is the same PWA and the same IndexedDB database as Stage 1. **Existing clips stay in place.** The upgrade adds a local review queue, manual transcripts, optional cloud transcription and suggested sorting.
 
-An optional spoken `priority seven` or `RPE seven` is preserved in the audio for Stage 2. No score is inferred in this stage.
+## Use the app
 
-## Try it on an iPhone
+1. Open the existing [Vercel deployment](https://ptt-smoky.vercel.app/) from the Home Screen. If it shows Stage 1, close and reopen once while online to let the new offline shell take over.
+2. Record as before; taps and local storage work offline.
+3. Open **Clips**. Select **Enter transcript** for an offline manual path or **Process with AI** to send only that chosen clip to OpenAI.
+4. Open **Review** to edit text, category, and the optional spoken priority/RPE/REP score. Keep or discard suggestions; discarded items can be restored.
+5. Use **Export notes JSON** for a text backup. Audio still has its own **Export audio** button. Nothing is deleted by Stage 2.
 
-1. After GitHub Pages is enabled for `main` at `/(root)` under **Settings → Pages**, open `https://greenhill32.github.io/PTT/` in Safari while online. GitHub Pages serves the app over **HTTPS**.
-2. Add it to the Home Screen through Share → Add to Home Screen.
-3. Tap **REC**, grant microphone access, speak, tap the square to stop, and wait for **Saved on this device**.
-4. Open **Clips**, replay it, export a copy, and repeat in Airplane Mode. Test screen lock and interruption on your own iPhone; the app stops when hidden, but iOS may suspend it before a final write.
+A clip can produce several separate review items. An AI-suggested **Noise** item is shown for review, never automatically thrown away. Priority is only extracted when you explicitly speak a score.
 
-For a desktop development server: `python3 -m http.server 8000` from this directory and open `http://localhost:8000`. `localhost` is a secure context for browser media APIs. The service worker caches the shell after its first successful load. When changing shell assets in later stages, increment `CACHE` in `sw.js` so returning installs receive them.
+## Enable AI processing (one-time Vercel setup)
 
-## Storage and safety
+Stage 2 can run without AI. Its server endpoint returns 503 until **both** of these environment variables are set in the Vercel project settings for the production environment:
 
-- Audio is held in this browser's IndexedDB. This is **not a durable backup**. Export any important recordings. Browser data removal, device failure, or an iOS eviction may remove it.
-- A persistent-storage request is made when recording starts, but a browser may decline it. Storage failures offer a manual download of the unsaved clip while the page remains open.
-- There is **no delete function** in Stage 1. No audio leaves the device through this app.
-- Always wait for the saved confirmation before closing the app.
+- `OPENAI_API_KEY`: an API key for your OpenAI Platform account. This is separate from a ChatGPT subscription.
+- `PTT_PROCESSING_CODE`: a random private code **at least 24 characters** long. Set it only in Vercel. The app asks for it the first time you process a clip each session. Never put either value in GitHub or in a URL.
 
-## Next stage (extend these files)
+After adding the variables, **redeploy the latest commit** in Vercel. Processing takes place only on an explicit tap while the app is open. The chosen audio travels to the Vercel function, then OpenAI for transcription; the transcript goes to OpenAI once more for splitting and categorization. The server function does not write audio or text to a database. The original recording and returned review items remain in browser storage on the device.
 
-Add a foreground processing queue to `app.js` using the existing `audio_clips` store and `status: 'unprocessed'`. Transcribe and split clips into suggested items, with the spoken score as a *hint*, not a mandatory field. Keep review and correction in the same app. Add remote storage only after choosing authenticated access and separately defining whether text or audio is backed up.
+The server accepts at most 2.5 MB of MP4/WebM audio per request. If the server is unavailable, enter a transcript manually. Processing can incur OpenAI API charges, so the endpoint requires the private code. Do not use a short or reusable personal password.
+
+## Data migration and later stages
+
+Opening the app upgrades IndexedDB from v1 to v2 by **adding** a `review_items` object store. It does not clear or rewrite previous recordings. A processed clip keeps its raw transcript and links to review items through `clip_id`. Clips are never automatically deleted, and no note is sent to Google Sheets at this stage.
+
+Stage 3 can add backup and personal sorting preferences to this same data model. If you change static assets later, bump the cache version in `sw.js` so Home Screen installs update. For desktop testing, serve the repository on `http://localhost:8000` with `python3 -m http.server 8000`.

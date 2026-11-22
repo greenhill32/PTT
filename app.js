@@ -1,4 +1,5 @@
 import { getClips, saveClip } from './db.js';
+import { attachReview, openNotes, pendingCount, exportNotes } from './review.js';
 
 const $ = id => document.getElementById(id);
 const record = $('record'), timer = $('timer'), ring = $('ring'), wave = $('waveform');
@@ -108,7 +109,10 @@ async function persistRecording() {
 function extension(mime) { return mime.includes('mp4') ? 'm4a' : mime.includes('webm') ? 'webm' : 'audio'; }
 
 async function refreshCount() {
-  try { $('count').textContent = (await getClips()).length; }
+  try {
+    $('count').textContent = (await getClips()).length;
+    $('review-count').textContent = await pendingCount();
+  }
   catch { message('Local storage is unavailable. Check browser settings.', true); }
 }
 
@@ -137,7 +141,9 @@ async function openClips() {
         link.download = `thought-${clip.created_at.replace(/[:.]/g, '-')}.${extension(clip.mime_type)}`;
         document.body.append(link); link.click(); link.remove();
       });
-      item.append(head, audio, exportButton); $('clips').append(item);
+      item.append(head, audio, exportButton);
+      attachReview(item, clip, refreshCount);
+      $('clips').append(item);
     }
     $('sheet').hidden = false;
     $('close').focus();
@@ -146,6 +152,10 @@ async function openClips() {
 
 record.addEventListener('click', () => { if (mode === 'recording') stopRecording(); else if (mode === 'idle') startRecording(); });
 $('review').addEventListener('click', openClips);
+$('notes-open').addEventListener('click', () => openNotes(refreshCount));
+$('notes-close').addEventListener('click', () => { $('notes-sheet').hidden = true; record.focus(); });
+$('notes-sheet').addEventListener('click', event => { if (event.target === $('notes-sheet')) $('notes-close').click(); });
+$('notes-export').addEventListener('click', () => exportNotes().catch(() => message('Could not export notes.', true)));
 $('close').addEventListener('click', () => { $('sheet').hidden = true; clearUrls(); record.focus(); });
 $('sheet').addEventListener('click', event => { if (event.target === $('sheet')) $('close').click(); });
 document.addEventListener('visibilitychange', () => {
