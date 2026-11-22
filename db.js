@@ -52,6 +52,16 @@ export async function getClips() {
   } finally { db.close(); }
 }
 
+export async function clearClips() {
+  const db = await openDatabase();
+  try {
+    const tx = db.transaction(CLIPS, 'readwrite');
+    const done = transactionDone(tx);
+    tx.objectStore(CLIPS).clear();
+    await done;
+  } finally { db.close(); }
+}
+
 export async function getItems() {
   const db = await openDatabase();
   try {
