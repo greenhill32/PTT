@@ -81,6 +81,11 @@ export function attachReview(card, clip, onChange) {
     if (busy) return;
     if (!navigator.onLine) { status.textContent = 'You are offline. Your clip is safe; try again online.'; return; }
     if (clip.audio_blob.size > 2_500_000) { status.textContent = 'Clip is over 2.5 MB. Export it or enter a transcript manually.'; return; }
+    try {
+      const check = await fetch('./api/process', { cache: 'no-store' });
+      const state = await check.json();
+      if (!state.ready) { status.textContent = 'AI is not configured yet. Enter a transcript manually, or set the two Vercel environment variables.'; return; }
+    } catch { status.textContent = 'AI service is unavailable. Your clip is safe; enter a transcript manually or try again later.'; return; }
     if (!processingCode) {
       const entered = prompt('Enter your private processing code (set in Vercel). It stays in memory until you close the app.');
       if (!entered) return;
