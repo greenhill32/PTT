@@ -6,10 +6,10 @@ This is the same PWA and IndexedDB database as Stages 1 and 2. **Existing clips 
 
 1. Open the existing [Vercel deployment](https://ptt-smoky.vercel.app/) from the Home Screen. If it shows Stage 1, close and reopen once while online to let the new offline shell take over.
 2. Record as before; taps and local storage work offline.
-3. Open **Clips**, tap **Share audio** for a clip, select Google Drive in the iPhone Share sheet, and save to **PTT / Input**. Check the upload in Drive. The button cannot select a Drive folder or verify an upload for you. Use **Export audio** if file sharing is unavailable. The original clip stays on the phone.
+3. Open **Clips**, tap **Share audio** for a clip, select Google Drive in the iPhone Share sheet, and save to **PTT / Input**. Check the upload in Drive. The button cannot select a Drive folder or verify an upload for you. Use **Export audio** if file sharing is unavailable. The original clip stays on the phone until you explicitly clear recordings.
 4. For the previous Stage 2 workflow, select **Enter transcript** for an offline manual path or **Process with AI** to send only that chosen clip to OpenAI.
 5. Open **Review** to edit text, category, and the optional spoken priority/RPE/REP score. Keep or discard suggestions; discarded items can be restored.
-6. Use **Export notes JSON** for a text backup. Nothing is deleted by this stage.
+6. Once you have confirmed your clips are in Drive, open **Clips → Clear recordings from this iPhone** and confirm to erase the local audio clips. This does not delete Drive files or written Review items. Use **Export notes JSON** for a text backup.
 
 The scheduled Drive workflow is separate from the PWA. It checks the **Input** folder at 18:00 Europe/London, transcribes new audio with Whisper, and reads a clear closing "RPE ten" as Keep or "RPE one" as Rubbish. Other or uncertain scores remain in Input for review. It stores results as JSON beside the audio; this stage does not import those results back into the phone's Review screen. Drive is a cloud copy of audio. Sharing through the iPhone Share sheet is manual and does not prove that Drive has completed its upload.
 
